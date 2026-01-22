@@ -3,11 +3,8 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 
-% Change color to blue
-\def\headcolor{\color[rgb]{0,0,0.5}}
-
-% Space before section headings
-\titlespacing{\section}{0pt}{2ex}{1ex}
+% Professional dark blue color for headings
+\def\headcolor{\color[rgb]{0.1,0.1,0.5}}
 
 \name{Rob J Hyndman}
 
@@ -31,10 +28,6 @@
 
 % Use useprefix because of Ashton de Silva
 \ExecuteBibliographyOptions{useprefix=true}
-
-\usepackage[sfdefault,lf,t]{carlito}
-\renewcommand{\bibfont}{\normalfont\fontsize{10}{12.4}\sffamily}
-\usepackage{inconsolata}
 
 \makebibcategory{selected}{Selected refereed research papers}
 
@@ -147,9 +140,7 @@ I have acquired (in most cases jointly) about \$6.4 million in external research
 \end{compactitem}
 
 
-\enlargethispage*{0.9cm}
-
-\setlength{\bibitemsep}{1.8pt}
+\enlargethispage*{0.5cm}
 
 \printbib{books}
 \printbib{selected}

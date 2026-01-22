@@ -7,7 +7,7 @@ email: "Rob.Hyndman@monash.edu"
 twitter: robjhyndman
 github: robjhyndman
 date: "`r format(Sys.time(), '%B %Y')`"
-headcolor: "000088"
+headcolor: "1a1a80"
 output:
   vitae::hyndman:
     keep_tex: yes
@@ -259,7 +259,7 @@ grants %>%
 
 # Publications
 
-\renewcommand{\bibfont}{\normalfont\fontsize{10}{11.8}\sffamily}
+\renewcommand{\bibfont}{\normalfont\fontsize{10}{13.5}\rmfamily}
 
 ```{r publist}
 # Find editorials
