@@ -1,0 +1,271 @@
+// Prisma Schema for Exam Question Manager
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  courses       Course[]
+  exams         Exam[]
+  questions     Question[]
+
+  @@map("users")
+}
+
+// ============================================
+// COURSE & TOPIC ORGANIZATION
+// ============================================
+
+model Course {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  code        String    // e.g., "MATH101"
+  name        String    // e.g., "Calculus I"
+  description String?
+  color       String?   // For UI display, e.g., "#3B82F6"
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topics      Topic[]
+  questions   Question[]
+  exams       Exam[]
+
+  @@unique([userId, code])
+  @@map("courses")
+}
+
+model Topic {
+  id          String    @id @default(uuid())
+  courseId    String    @map("course_id")
+  name        String    // e.g., "Derivatives", "Integrals"
+  description String?
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions   Question[]
+
+  @@unique([courseId, name])
+  @@map("topics")
+}
+
+// ============================================
+// QUESTIONS
+// ============================================
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  SHORT_ANSWER
+  LONG_FORM
+  NUMERICAL
+
+  @@map("question_type")
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+
+  @@map("difficulty")
+}
+
+model Question {
+  id              String        @id @default(uuid())
+  userId          String        @map("user_id")
+  courseId        String        @map("course_id")
+  topicId         String?       @map("topic_id")
+
+  // Question content
+  questionType    QuestionType  @map("question_type")
+  difficulty      Difficulty    @default(MEDIUM)
+  questionLatex   String        @map("question_latex") @db.Text  // LaTeX content
+  solutionLatex   String?       @map("solution_latex") @db.Text  // Worked solution in LaTeX
+  answerKey       String?       @map("answer_key")               // Short answer: "42", MC: "A"
+
+  // Metadata
+  defaultPoints   Decimal?      @map("default_points") @db.Decimal(5, 2)
+  notes           String?       @db.Text                         // Personal notes
+  isArchived      Boolean       @default(false) @map("is_archived")
+
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  topic           Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  options         QuestionOption[]
+  images          QuestionImage[]
+  tags            QuestionTag[]
+  examQuestions   ExamQuestion[]
+
+  @@index([userId, courseId])
+  @@index([topicId])
+  @@index([questionType])
+  @@index([difficulty])
+  @@index([isArchived])
+  @@map("questions")
+}
+
+// Multiple choice options
+model QuestionOption {
+  id            String    @id @default(uuid())
+  questionId    String    @map("question_id")
+  label         String    // "A", "B", "C", "D", etc.
+  optionLatex   String    @map("option_latex") @db.Text  // Option content in LaTeX
+  isCorrect     Boolean   @default(false) @map("is_correct")
+  sortOrder     Int       @default(0) @map("sort_order")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  question      Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, label])
+  @@map("question_options")
+}
+
+// Images/diagrams attached to questions
+model QuestionImage {
+  id          String    @id @default(uuid())
+  questionId  String    @map("question_id")
+  filename    String    // Original filename
+  storagePath String    @map("storage_path")  // Path in uploads folder
+  caption     String?   // Optional caption/alt text
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_images")
+}
+
+// ============================================
+// TAGS (Flexible categorization)
+// ============================================
+
+model Tag {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  color     String?   // For UI display
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  questions QuestionTag[]
+
+  @@map("tags")
+}
+
+model QuestionTag {
+  questionId  String    @map("question_id")
+  tagId       String    @map("tag_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([questionId, tagId])
+  @@map("question_tags")
+}
+
+// ============================================
+// EXAMS
+// ============================================
+
+model ExamType {
+  id          String    @id @default(uuid())
+  name        String    @unique  // "Midterm", "Final", "Quiz", "Assignment"
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  exams       Exam[]
+
+  @@map("exam_types")
+}
+
+model Exam {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  courseId        String    @map("course_id")
+  examTypeId      String    @map("exam_type_id")
+
+  // Exam details
+  title           String    // "Midterm Exam - Fall 2024"
+  instructionsLatex String? @map("instructions_latex") @db.Text  // Exam instructions in LaTeX
+  examDate        DateTime? @map("exam_date")
+  durationMinutes Int?      @map("duration_minutes")
+  totalPoints     Decimal?  @map("total_points") @db.Decimal(6, 2)
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  examType        ExamType  @relation(fields: [examTypeId], references: [id])
+  examQuestions   ExamQuestion[]
+
+  @@index([userId, courseId])
+  @@index([examDate])
+  @@map("exams")
+}
+
+// Junction table: Links questions to exams (TRACKS USAGE!)
+model ExamQuestion {
+  id              String    @id @default(uuid())
+  examId          String    @map("exam_id")
+  questionId      String    @map("question_id")
+  questionOrder   Int       @map("question_order")  // Order in the exam
+  pointsAssigned  Decimal?  @map("points_assigned") @db.Decimal(5, 2)
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  exam            Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  question        Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, questionId])
+  @@unique([examId, questionOrder])
+  @@map("exam_questions")
+}
+
+// ============================================
+// BACKUP TRACKING
+// ============================================
+
+model BackupLog {
+  id          String    @id @default(uuid())
+  filename    String
+  sizeBytes   BigInt    @map("size_bytes")
+  status      String    // "success", "failed"
+  errorMessage String?  @map("error_message")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("backup_logs")
+}
