@@ -38,6 +38,10 @@ prisma/migrations/**/migration_lock.toml
 uploads/*
 !uploads/.gitkeep
 
+# Backups (stored in Dropbox-synced folder)
+backups/*
+!backups/.gitkeep
+
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
