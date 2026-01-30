@@ -98,6 +98,9 @@ model Question {
   courseId        String        @map("course_id")
   topicId         String?       @map("topic_id")
 
+  // Question lineage (for duplicated/edited questions)
+  parentQuestionId String?      @map("parent_question_id")
+
   // Question content
   questionType    QuestionType  @map("question_type")
   difficulty      Difficulty    @default(MEDIUM)
@@ -107,7 +110,8 @@ model Question {
 
   // Metadata
   defaultPoints   Decimal?      @map("default_points") @db.Decimal(5, 2)
-  notes           String?       @db.Text                         // Personal notes
+  notes           String?       @db.Text                         // Personal notes (e.g., "From XX book", sources)
+  sourceReference String?       @map("source_reference")         // e.g., "Stewart Calculus, Ch.3, Problem 42"
   isArchived      Boolean       @default(false) @map("is_archived")
 
   // Timestamps
@@ -118,6 +122,11 @@ model Question {
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
   topic           Topic?        @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  // Self-referencing relation for question lineage
+  parentQuestion  Question?     @relation("QuestionLineage", fields: [parentQuestionId], references: [id], onDelete: SetNull)
+  childQuestions  Question[]    @relation("QuestionLineage")
+
   options         QuestionOption[]
   images          QuestionImage[]
   tags            QuestionTag[]
@@ -125,6 +134,7 @@ model Question {
 
   @@index([userId, courseId])
   @@index([topicId])
+  @@index([parentQuestionId])
   @@index([questionType])
   @@index([difficulty])
   @@index([isArchived])
@@ -217,6 +227,8 @@ model Exam {
 
   // Exam details
   title           String    // "Midterm Exam - Fall 2024"
+  academicYear    Int?      @map("academic_year")    // e.g., 2024
+  semester        String?   // e.g., "Fall", "Spring", "Summer"
   instructionsLatex String? @map("instructions_latex") @db.Text  // Exam instructions in LaTeX
   examDate        DateTime? @map("exam_date")
   durationMinutes Int?      @map("duration_minutes")
@@ -234,6 +246,7 @@ model Exam {
 
   @@index([userId, courseId])
   @@index([examDate])
+  @@index([academicYear])
   @@map("exams")
 }
 
@@ -243,8 +256,16 @@ model ExamQuestion {
   examId          String    @map("exam_id")
   questionId      String    @map("question_id")
   questionOrder   Int       @map("question_order")  // Order in the exam
-  pointsAssigned  Decimal?  @map("points_assigned") @db.Decimal(5, 2)
+  pointsAssigned  Decimal?  @map("points_assigned") @db.Decimal(5, 2)  // Max points for this question in this exam
   createdAt       DateTime  @default(now()) @map("created_at")
+
+  // Student performance statistics (updated after exam grading)
+  averageScore    Decimal?  @map("average_score") @db.Decimal(5, 2)    // Average student score on this question
+  stdDeviation    Decimal?  @map("std_deviation") @db.Decimal(5, 2)   // Standard deviation of scores
+  minScore        Decimal?  @map("min_score") @db.Decimal(5, 2)       // Lowest score
+  maxScore        Decimal?  @map("max_score") @db.Decimal(5, 2)       // Highest score
+  responseCount   Int?      @map("response_count")                     // Number of students who answered
+  performanceNotes String?  @map("performance_notes") @db.Text        // Notes about student performance
 
   // Relations
   exam            Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
