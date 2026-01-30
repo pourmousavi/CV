@@ -12,6 +12,7 @@ import {
   GitBranch,
   Calendar,
   Award,
+  ImageIcon,
 } from 'lucide-react';
 import { LaTeXPreview } from '@/components/ui/latex-preview';
 import { DuplicateButton } from '@/components/questions/duplicate-button';
@@ -194,6 +195,35 @@ export default async function QuestionDetailPage({ params }: PageProps) {
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="text-sm font-medium text-blue-900 mb-1">Answer Key</h3>
             <p className="text-blue-800">{question.answerKey}</p>
+          </div>
+        )}
+
+        {/* Images */}
+        {question.images.length > 0 && (
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Attached Images ({question.images.length})
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {question.images.map((image) => (
+                <div
+                  key={image.id}
+                  className="rounded-lg border border-gray-200 overflow-hidden"
+                >
+                  <img
+                    src={`/api${image.filepath}`}
+                    alt={image.caption || image.filename}
+                    className="w-full h-48 object-contain bg-gray-50"
+                  />
+                  {image.caption && (
+                    <div className="px-3 py-2 bg-gray-50 border-t border-gray-200">
+                      <p className="text-sm text-gray-600">{image.caption}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

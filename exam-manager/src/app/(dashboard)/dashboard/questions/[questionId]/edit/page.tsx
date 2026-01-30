@@ -21,6 +21,7 @@ export default async function EditQuestionPage({ params }: PageProps) {
       include: {
         options: { orderBy: { sortOrder: 'asc' } },
         tags: { include: { tag: true } },
+        images: { orderBy: { sortOrder: 'asc' } },
       },
     }),
     prisma.course.findMany({
@@ -57,6 +58,13 @@ export default async function EditQuestionPage({ params }: PageProps) {
       isCorrect: opt.isCorrect,
     })),
     tags: question.tags,
+    images: question.images.map((img) => ({
+      id: img.id,
+      filename: img.filename,
+      filepath: img.filepath,
+      caption: img.caption,
+      sortOrder: img.sortOrder,
+    })),
   };
 
   return <QuestionForm courses={courses} tags={tags} initialData={initialData} />;

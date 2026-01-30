@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Trash2, GripVertical, Image as ImageIcon } from 'lucide-react';
 import { LaTeXEditor } from '@/components/ui/latex-editor';
+import { ImageUpload } from '@/components/questions/image-upload';
 
 interface Course {
   id: string;
@@ -22,6 +23,14 @@ interface Tag {
   id: string;
   name: string;
   color: string | null;
+}
+
+interface QuestionImage {
+  id: string;
+  filename: string;
+  filepath: string;
+  caption: string | null;
+  sortOrder: number;
 }
 
 interface QuestionOption {
@@ -49,6 +58,7 @@ interface QuestionFormProps {
     sourceReference: string | null;
     options: { label: string; optionLatex: string; isCorrect: boolean }[];
     tags: { tag: Tag }[];
+    images: QuestionImage[];
   };
 }
 
@@ -102,6 +112,7 @@ export function QuestionForm({
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
     initialData?.tags?.map((t) => t.tag.id) || []
   );
+  const [images, setImages] = useState<QuestionImage[]>(initialData?.images || []);
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -457,6 +468,30 @@ export function QuestionForm({
             minRows={8}
           />
         </div>
+
+        {/* Images - only show when editing (need questionId to upload) */}
+        {isEditing && (
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <ImageIcon className="h-5 w-5 text-gray-600" />
+              <h2 className="text-lg font-semibold text-gray-900">Diagrams & Images</h2>
+            </div>
+            <ImageUpload
+              questionId={initialData.id}
+              images={images}
+              onImagesChange={() => {
+                // Refresh images from server
+                fetch(`/api/questions/${initialData.id}/images`)
+                  .then((res) => res.json())
+                  .then((data) => setImages(data))
+                  .catch(() => {});
+              }}
+            />
+            <p className="mt-3 text-xs text-gray-500">
+              Upload diagrams or figures to include in your question. Use the caption field to reference images in your LaTeX.
+            </p>
+          </div>
+        )}
 
         {/* Metadata */}
         <div className="bg-white rounded-lg border border-gray-200 p-6">
